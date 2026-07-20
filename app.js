@@ -11,6 +11,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initCarousel();
     initContactForm();
     initNewsletterForm();
+    initTechStack();
+    initCaseStudies();
+    initFAQAccordion();
 });
 
 /* ==========================================================================
@@ -100,12 +103,14 @@ function initScrollReveal() {
 }
 
 /* ==========================================================================
-   IT Budget Estimator Widget
+   Smart IT Architecture & Budget Planner
    ========================================================================== */
 function initBudgetEstimator() {
     const checkboxes = document.querySelectorAll('.service-checkbox');
     const durationSlider = document.getElementById('project-duration');
     const scaleSlider = document.getElementById('project-scale');
+    const trafficSelect = document.getElementById('planner-traffic');
+    const securitySelect = document.getElementById('planner-security');
     
     const valDuration = document.getElementById('val-duration');
     const valScale = document.getElementById('val-scale');
@@ -115,6 +120,9 @@ function initBudgetEstimator() {
     const listServices = document.getElementById('breakdown-services');
     const listTimeline = document.getElementById('breakdown-timeline');
     const listComplexity = document.getElementById('breakdown-complexity');
+    
+    const recTitle = document.getElementById('rec-title-span');
+    const recDesc = document.getElementById('rec-desc-p');
 
     // Baseline costs for services
     const baseServiceCosts = {
@@ -132,6 +140,7 @@ function initBudgetEstimator() {
     function calculateEstimate() {
         let totalCost = 0;
         let selectedCount = 0;
+        let selectedServices = [];
 
         // Calculate service cost sum
         checkboxes.forEach(cb => {
@@ -139,20 +148,19 @@ function initBudgetEstimator() {
                 const serviceKey = cb.value;
                 totalCost += baseServiceCosts[serviceKey] || 0;
                 selectedCount++;
+                selectedServices.push(serviceKey);
             }
         });
 
         // Update list of services count in summary card
         listServices.textContent = selectedCount > 0 ? `${selectedCount} Selected` : 'None';
 
-        // Duration adjustments: shorter project timeline (high compression) increases developer resource concentration -> higher rates.
-        // Long timeline allows standard pacing.
+        // Duration adjustments
         const months = parseInt(durationSlider.value);
         valDuration.textContent = `${months} Month${months > 1 ? 's' : ''}`;
         listTimeline.textContent = `${months} Month${months > 1 ? 's' : ''}`;
 
         // Timeline compression factor
-        // If months: 3 -> x1.4, 6 -> x1.2, 9 -> x1.0, 12 -> x0.9 (efficiency of long projects)
         let timelineMultiplier = 1.0;
         if (months <= 3) timelineMultiplier = 1.45;
         else if (months <= 6) timelineMultiplier = 1.25;
@@ -165,14 +173,32 @@ function initBudgetEstimator() {
         listComplexity.textContent = scaleLabels[scaleIndex].split(' ')[0]; // short term
         const scaleMultiplier = scaleMultipliers[scaleIndex];
 
+        // Traffic multiplier
+        let trafficMultiplier = 1.0;
+        const trafficVal = trafficSelect ? trafficSelect.value : 'low';
+        if (trafficVal === 'medium') trafficMultiplier = 1.2;
+        else if (trafficVal === 'high') trafficMultiplier = 1.5;
+        else if (trafficVal === 'hyper') trafficMultiplier = 2.0;
+
+        // Security compliance flat add
+        let securityCost = 0;
+        const securityVal = securitySelect ? securitySelect.value : 'standard';
+        if (securityVal === 'soc2') securityCost = 4500;
+        else if (securityVal === 'gdpr') securityCost = 6000;
+        else if (securityVal === 'zerotrust') securityCost = 12000;
+
         // Apply formula
         if (selectedCount === 0) {
             resultPrice.textContent = "$0";
             resultTimeline.textContent = "Select services to estimate cost";
+            if (recTitle && recDesc) {
+                recTitle.textContent = "Architectural Advisor";
+                recDesc.textContent = "Select services, project parameters, and security policies to generate a custom system design recommendation.";
+            }
             return;
         }
 
-        const rawEstimate = totalCost * timelineMultiplier * scaleMultiplier;
+        const rawEstimate = (totalCost * timelineMultiplier * scaleMultiplier * trafficMultiplier) + securityCost;
         
         // Low and high estimates (variance margin)
         const lowEst = Math.round((rawEstimate * 0.92) / 100) * 100;
@@ -181,16 +207,49 @@ function initBudgetEstimator() {
         // Display results
         resultPrice.textContent = `$${lowEst.toLocaleString()} - $${highEst.toLocaleString()}`;
         resultTimeline.textContent = `Estimated Delivery: ~${months} Month${months > 1 ? 's' : ''}`;
+
+        // Calculate and display smart architecture advice
+        generateArchitectureRecommendation(selectedServices, trafficVal, securityVal);
+    }
+
+    function generateArchitectureRecommendation(services, traffic, security) {
+        if (!recTitle || !recDesc) return;
+
+        let title = "Modern VPC Cloud Architecture";
+        let desc = "Deploying standard virtual machine nodes with relational SQL database backups, isolated behind firewall rules. Recommended for standard websites and back-office apps.";
+
+        const hasCloud = services.includes('cloud');
+        const hasSoftware = services.includes('software');
+        const hasCyber = services.includes('cyber');
+        const hasAI = services.includes('ai');
+
+        if (hasAI && (traffic === 'high' || traffic === 'hyper')) {
+            title = "Distributed GPU Machine Learning Pipeline";
+            desc = "Configured on cloud worker pools with GPU auto-scaling, serving custom machine learning predictions via FastAPI endpoints, backed by high-throughput data lakes (S3/GCS).";
+        } else if (hasCloud && (traffic === 'high' || traffic === 'hyper')) {
+            title = "Multi-Region Kubernetes Container Cluster";
+            desc = "Deploying high-availability containerized microservices managed by EKS/GKE across multiple availability zones. Features global Load Balancers, Cloudflare WAF, and PostgreSQL replication.";
+        } else if (hasCloud && (traffic === 'medium' || traffic === 'low')) {
+            title = "AWS Serverless Microservices Architecture";
+            desc = "Utilizing AWS Lambda / GCP Cloud Functions connected via API Gateway and DynamoDB storage. This setup auto-scales from zero to thousands of active requests with near-zero idle resource cost.";
+        } else if (hasCyber && security === 'zerotrust') {
+            title = "Zero-Trust Enterprise Network & IAM Isolation";
+            desc = "Configuring comprehensive network segregation, Cloud Identity Proxy logins, hardware-based MFA enforcement, database-level encryption-at-rest, and real-time SIEM logging.";
+        } else if (hasSoftware && (security === 'gdpr' || security === 'soc2')) {
+            title = "Audit-Ready Compliant Web Application";
+            desc = "Tailored for financial or healthcare applications. Combines isolated data vaults, field-level encryption, regular auto-backups, penetration logging, and SOC 2 / GDPR report exports.";
+        }
+
+        recTitle.innerHTML = `<i class="fas fa-microchip"></i> System Recommendation: ${title}`;
+        recDesc.textContent = desc;
     }
 
     // Attach listeners
     checkboxes.forEach(cb => cb.addEventListener('change', calculateEstimate));
-    if (durationSlider) {
-        durationSlider.addEventListener('input', calculateEstimate);
-    }
-    if (scaleSlider) {
-        scaleSlider.addEventListener('input', calculateEstimate);
-    }
+    if (durationSlider) durationSlider.addEventListener('input', calculateEstimate);
+    if (scaleSlider) scaleSlider.addEventListener('input', calculateEstimate);
+    if (trafficSelect) trafficSelect.addEventListener('change', calculateEstimate);
+    if (securitySelect) securitySelect.addEventListener('change', calculateEstimate);
 
     // Run first baseline estimate
     calculateEstimate();
@@ -413,5 +472,107 @@ function initNewsletterForm() {
         } else {
             showToast('Please enter a valid email address.', 'info');
         }
+    });
+}
+
+/* ==========================================================================
+   Technology Stack Sorting
+   ========================================================================== */
+function initTechStack() {
+    const filterPills = document.querySelectorAll('.tech-filter');
+    const techCards = document.querySelectorAll('.tech-card');
+
+    filterPills.forEach(pill => {
+        pill.addEventListener('click', () => {
+            // Toggle active pill
+            filterPills.forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+
+            const filterVal = pill.getAttribute('data-filter');
+
+            techCards.forEach(card => {
+                const categories = card.getAttribute('data-category').split(' ');
+                if (filterVal === 'all' || categories.includes(filterVal)) {
+                    card.style.display = 'flex';
+                    setTimeout(() => {
+                        card.style.opacity = '1';
+                        card.style.transform = 'scale(1)';
+                    }, 50);
+                } else {
+                    card.style.opacity = '0';
+                    card.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        card.style.display = 'none';
+                    }, 300);
+                }
+            });
+        });
+    });
+}
+
+/* ==========================================================================
+   Case Studies Dynamic Filtering
+   ========================================================================== */
+function initCaseStudies() {
+    const filterPills = document.querySelectorAll('.case-filter');
+    const caseCards = document.querySelectorAll('.case-study-card');
+
+    filterPills.forEach(pill => {
+        pill.addEventListener('click', () => {
+            // Toggle active pill
+            filterPills.forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+
+            const filterVal = pill.getAttribute('data-filter');
+
+            caseCards.forEach(card => {
+                const category = card.getAttribute('data-category');
+                if (filterVal === 'all' || category === filterVal) {
+                    card.style.display = 'flex';
+                    setTimeout(() => {
+                        card.style.opacity = '1';
+                        card.style.transform = 'translateY(0)';
+                    }, 50);
+                } else {
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateY(20px)';
+                    setTimeout(() => {
+                        card.style.display = 'none';
+                    }, 300);
+                }
+            });
+        });
+    });
+}
+
+/* ==========================================================================
+   FAQ Sliding Accordion
+   ========================================================================== */
+function initFAQAccordion() {
+    const accordionHeaders = document.querySelectorAll('.accordion-header');
+
+    accordionHeaders.forEach(header => {
+        header.addEventListener('click', () => {
+            const item = header.closest('.accordion-item');
+            const body = item.querySelector('.accordion-body');
+            const isActive = item.classList.contains('active');
+
+            // Collapse all other active items
+            document.querySelectorAll('.accordion-item.active').forEach(activeItem => {
+                if (activeItem !== item) {
+                    activeItem.classList.remove('active');
+                    activeItem.querySelector('.accordion-body').style.maxHeight = '0';
+                }
+            });
+
+            // Toggle current item
+            if (isActive) {
+                item.classList.remove('active');
+                body.style.maxHeight = '0';
+            } else {
+                item.classList.add('active');
+                body.style.maxHeight = body.scrollHeight + 'px';
+            }
+        });
     });
 }
