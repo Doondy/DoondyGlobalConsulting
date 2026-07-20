@@ -124,13 +124,13 @@ function initBudgetEstimator() {
     const recTitle = document.getElementById('rec-title-span');
     const recDesc = document.getElementById('rec-desc-p');
 
-    // Baseline costs for services
+    // Baseline costs for services (in Indian Rupees ₹)
     const baseServiceCosts = {
-        consulting: 5000,
-        cloud: 9500,
-        cyber: 8000,
-        software: 15000,
-        ai: 18000
+        consulting: 425000,
+        cloud: 807500,
+        cyber: 680000,
+        software: 1275000,
+        ai: 1530000
     };
 
     // Complexity descriptors
@@ -180,16 +180,16 @@ function initBudgetEstimator() {
         else if (trafficVal === 'high') trafficMultiplier = 1.5;
         else if (trafficVal === 'hyper') trafficMultiplier = 2.0;
 
-        // Security compliance flat add
+        // Security compliance flat add (in Indian Rupees ₹)
         let securityCost = 0;
         const securityVal = securitySelect ? securitySelect.value : 'standard';
-        if (securityVal === 'soc2') securityCost = 4500;
-        else if (securityVal === 'gdpr') securityCost = 6000;
-        else if (securityVal === 'zerotrust') securityCost = 12000;
+        if (securityVal === 'soc2') securityCost = 382500;
+        else if (securityVal === 'gdpr') securityCost = 510000;
+        else if (securityVal === 'zerotrust') securityCost = 1020000;
 
         // Apply formula
         if (selectedCount === 0) {
-            resultPrice.textContent = "$0";
+            resultPrice.textContent = "₹0";
             resultTimeline.textContent = "Select services to estimate cost";
             if (recTitle && recDesc) {
                 recTitle.textContent = "Architectural Advisor";
@@ -205,7 +205,7 @@ function initBudgetEstimator() {
         const highEst = Math.round((rawEstimate * 1.08) / 100) * 100;
 
         // Display results
-        resultPrice.textContent = `$${lowEst.toLocaleString()} - $${highEst.toLocaleString()}`;
+        resultPrice.textContent = `₹${lowEst.toLocaleString('en-IN')} – ₹${highEst.toLocaleString('en-IN')}`;
         resultTimeline.textContent = `Estimated Delivery: ~${months} Month${months > 1 ? 's' : ''}`;
 
         // Calculate and display smart architecture advice
